@@ -1,7 +1,8 @@
 'use client';
-import { FirebaseError, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
 import { useState } from 'react';
 
 export default function LoginPage() {
