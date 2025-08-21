@@ -1,5 +1,5 @@
 'use client';
-import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -9,7 +9,7 @@ interface MovimientoCaja {
   origen: string;
   monto: number;
   descripcion?: string;
-  fecha: firebase.firestore.Timestamp | Date; // Use Timestamp or Date type
+  fecha: Timestamp | Date; // Use Timestamp or Date type
   metodoPago: string;
 }
 
