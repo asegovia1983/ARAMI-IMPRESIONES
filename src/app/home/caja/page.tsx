@@ -21,7 +21,18 @@ export default function CajaPage() {
 
   useEffect(() => {
     const q = query(collection(db, 'movimientosCaja'), orderBy('fecha','desc'));
-    const unsub = onSnapshot(q, snap => setMovs(snap.docs.map(d=>({ id: d.id, ...d.data() }))));
+    const unsub = onSnapshot(q, snap => setMovs(snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        tipo: data.tipo as 'ingreso' | 'egreso',
+        origen: data.origen,
+        monto: data.monto,
+        descripcion: data.descripcion,
+        fecha: data.fecha instanceof Timestamp ? data.fecha : new Date(data.fecha.seconds * 1000),
+        metodoPago: data.metodoPago,
+      };
+    })));
     return () => unsub(); // Unsubscribe on cleanup
   }, []);
 
