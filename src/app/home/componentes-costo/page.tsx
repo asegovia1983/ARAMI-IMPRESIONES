@@ -1,27 +1,15 @@
 "use client";
 
+import type { ComponenteCosto, TipoComponente } from "@/types";
 import { useEffect, useMemo, useState } from "react";
-import {
-  ComponenteCosto,
-  listenComponentesActivos,
-  crearComponente,
-  actualizarComponente,
-  eliminarComponente,
-} from "@/lib/componentesCosto";
-
-type Form = {
-  id?: string;
-  nombre: string;
-  tipo: "insumo" | "variable" | "fijo";
-  unidad: string;
-  costoUnit: string;
-  activo: boolean;
-};
+import { listenComponentesActivos, crearComponente, actualizarComponente, eliminarComponente } from "@/lib/componentesCosto";
 
 export default function ComponentesCostoPage() {
   const [rows, setRows] = useState<ComponenteCosto[]>([]);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+
+  type Form = ComponenteCosto & { costoUnit: string };
   const [form, setForm] = useState<Form>({ nombre: "", tipo: "insumo", unidad: "", costoUnit: "", activo: true });
 
   useEffect(() => {
@@ -40,12 +28,12 @@ export default function ComponentesCostoPage() {
   }, [q, rows]);
 
   const onNew = () => {
-    setForm({ nombre: "", tipo: "insumo", unidad: "", costoUnit: "", activo: true });
+    setForm({ nombre: "", tipo: "insumo", unidad: "", costoUnit: "", activo: true, id: undefined });
     setOpen(true);
   };
 
   const onEdit = (c: ComponenteCosto) => {
-    setForm({
+    setForm({ 
       id: c.id,
       nombre: c.nombre,
       tipo: c.tipo,
@@ -55,7 +43,7 @@ export default function ComponentesCostoPage() {
     });
     setOpen(true);
   };
-
+  
   const onDelete = async (id?: string) => {
     if (!id) return;
     if (!confirm("¿Eliminar componente?")) return;
@@ -155,7 +143,7 @@ export default function ComponentesCostoPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm mb-1">Tipo</label>
-                  <select className="w-full border rounded px-3 py-2" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value as any }))}>
+                  <select className="w-full border rounded px-3 py-2" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value as TipoComponente }))}>
                     <option value="insumo">insumo</option>
                     <option value="variable">variable</option>
                     <option value="fijo">fijo</option>

@@ -7,9 +7,9 @@ import { Package, ShoppingCart, Calculator, LineChart, LogOut } from "lucide-rea
 export default function Sidebar() {
   const pathname = usePathname();
 
-  const item = (href: string, label: string, Icon: any) => {
+  const item = (href: string, label: string, Icon: React.ElementType) => {
     const active = pathname?.startsWith(href);
-    return (
+    return ( 
       <Link
         href={href}
         className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition
@@ -24,10 +24,10 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-slate-800 bg-slate-900/95 backdrop-blur">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-slate-800 bg-slate-900/95 backdrop-blur"> 
       <div className="px-4 py-4">
         <div className="text-lg font-semibold tracking-wide text-white">Impresiones Arami</div>
-      </div>
+      </div> 
       <nav className="mt-2 space-y-1 px-3">
         {item("/home/pedidos", "Pedidos", ShoppingCart)}
         {item("/home/productos", "Productos", Package)}

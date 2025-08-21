@@ -8,12 +8,12 @@ export type MovimientoCaja = {
   referenciaId?: string; // ej: "pedidos/XYZ"
   monto: number;
   descripcion?: string;
-  metodoPago?: string;
-  fecha?: any;
+  metodoPago?: string; // You might want a more specific type here if you have predefined payment methods
+  fecha?: Date; // Using Date to represent a timestamp
 };
 
-const COL = "movimientosCaja";
-const cleanUndefined = (o: any) =>
+const COL = "movimientosCaja"; // Consider moving this to a constants file if used elsewhere
+const cleanUndefined = (o: Record<string, unknown>): Record<string, unknown> =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
 
 export async function registrarIngresoPedido(args: {

@@ -8,7 +8,7 @@ export default function PedidosEntregadosPage() {
   const [rows, setRows] = useState<Pedido[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
-  const [metodoPago, setMetodoPago] = useState<Record<string, string>>({}); // por pedidoId
+  const [metodoPago, setMetodoPago] = useState<Record<string, string>>({}); // Method of payment by order ID
 
   useEffect(() => {
     const unsub = listenPedidosEntregados((data) => {
@@ -37,7 +37,7 @@ export default function PedidosEntregadosPage() {
         await actualizarPedido(p.id!, { cobrado: true, metodoPago: metodoPago[p.id!] || undefined });
         alert("Pedido marcado como cobrado (no había saldo pendiente).");
         return;
-      }
+    }
       // 1) registrar ingreso en caja
       await registrarIngresoPedido({
         pedidoPath: `pedidos/${p.id}`,
@@ -48,7 +48,7 @@ export default function PedidosEntregadosPage() {
       // 2) marcar cobrado
       await actualizarPedido(p.id!, { cobrado: true, metodoPago: metodoPago[p.id!] || undefined });
       alert("¡Cobro registrado y pedido marcado como cobrado!");
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
       alert(`Error al cobrar: ${e?.message || e}`);
     }

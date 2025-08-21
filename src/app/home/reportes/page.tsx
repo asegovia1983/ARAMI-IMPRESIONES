@@ -3,13 +3,19 @@ import { useState } from "react";
 import { getReporteMensual } from "@/lib/reportes";
 
 export default function ReportesPage() {
+  // Define a type for the reporte state based on the expected structure from getReporteMensual
+  // Assuming ReporteMensual is an interface or type defined in src/types.ts
+  // If not, you might need to define it here or in a shared types file.
+  // Example type definition:
+  // interface ReporteMensual { ingresos: number; costos: number; ganancia: number; margen: number; detalleProductos: { nombre: string; cant: number; ingreso: number; costo: number; ganancia: number; margen: number; }[]; }
+
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [anio, setAnio] = useState(new Date().getFullYear());
-  const [reporte, setReporte] = useState<any>(null);
+  const [reporte, setReporte] = useState<ReporteMensual | null>(null);
 
   async function cargar() {
     const data = await getReporteMensual(anio, mes);
-    setReporte(data);
+    setReporte(data as ReporteMensual); // Cast the data to the defined type
   }
 
   return (
@@ -43,8 +49,8 @@ export default function ReportesPage() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200" >
-              {reporte.detalleProductos.map((p: any) => (
-                <tr key={p.nombre}>
+              {reporte.detalleProductos.map((p: { nombre: string; cant: number; ingreso: number; costo: number; ganancia: number; margen: number; }) => (
+                <tr key={p.nombre}>  {/* Assuming p.nombre is unique */}
                   <td className="border p-1">{p.nombre}</td>
                   <td className="border p-1">{p.cant}</td>
                   <td className="border p-1">${p.ingreso.toLocaleString("es-AR")}</td>
@@ -59,4 +65,12 @@ export default function ReportesPage() {
       )}
     </div>
   );
+}
+
+interface ReporteMensual {
+  ingresos: number;
+  costos: number;
+  ganancia: number;
+  margen: number;
+  detalleProductos: { nombre: string; cant: number; ingreso: number; costo: number; ganancia: number; margen: number; }[];
 }

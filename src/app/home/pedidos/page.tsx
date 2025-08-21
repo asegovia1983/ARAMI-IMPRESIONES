@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
+import { 
   Pedido, actualizarPedido, eliminarPedido, listenPedidosPorEstados, PedidoEstado, crearPedido
 } from "@/lib/pedidos";
 import PedidoFormModal from "@/components/PedidoFormModal";
@@ -109,7 +109,7 @@ export default function PedidosPage() {
                     <select
                       className="border rounded px-2 py-1"
                       value={p.estado}
-                      onChange={(e) => updateEstadoInline(p, e.target.value as any)}
+                      onChange={(e) => updateEstadoInline(p, e.target.value as PedidoEstado)}
                     >
                       <option value="pendiente">pendiente</option>
                       <option value="en_proceso">en_proceso</option>

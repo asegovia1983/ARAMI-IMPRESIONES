@@ -1,6 +1,17 @@
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
+interface PedidoItem {
+  cantidad: number;
+  precioUnit: number;
+  costoUnit: number;
+  nombre: string;
+}
+
+interface Pedido {
+  items?: PedidoItem[];
+}
+
 export async function getReporteMensual(year: number, month: number) {
   const start = Timestamp.fromDate(new Date(year, month - 1, 1, 0, 0, 0));
   const end = Timestamp.fromDate(new Date(year, month, 0, 23, 59, 59));
@@ -18,9 +29,9 @@ export async function getReporteMensual(year: number, month: number) {
   let costos = 0;
   const detalleProductos: Record<string, { nombre: string; cant: number; ingreso: number; costo: number }> = {};
 
-  snap.forEach(doc => {
-    const pedido = doc.data();
-    (pedido.items || []).forEach((item: any) => {
+  snap.forEach((doc) => {
+    const pedido = doc.data() as Pedido;
+    (pedido.items || []).forEach((item: PedidoItem) => {
       const ingresoItem = item.cantidad * item.precioUnit;
       const costoItem = item.cantidad * item.costoUnit;
       ingresos += ingresoItem;
@@ -44,7 +55,7 @@ export async function getReporteMensual(year: number, month: number) {
     ganancia,
     margen,
     detalleProductos: Object.values(detalleProductos)
-      .map(p => ({ ...p, ganancia: p.ingreso - p.costo, margen: p.ingreso > 0 ? ((p.ingreso - p.costo) / p.ingreso) * 100 : 0 }))
+      .map((p) => ({ ...p, ganancia: p.ingreso - p.costo, margen: p.ingreso > 0 ? ((p.ingreso - p.costo) / p.ingreso) * 100 : 0 }))
       .sort((a, b) => b.ingreso - a.ingreso)
   };
 }

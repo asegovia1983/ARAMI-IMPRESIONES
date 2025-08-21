@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Producto, getProductos, crearProducto, actualizarProducto, eliminarProducto, calcularCostoDesdeReceta, RecetaItem
+  Producto, getProductos, crearProducto, actualizarProducto, eliminarProducto, RecetaItem
 } from "@/lib/productos";
 import { listenComponentesActivos, type ComponenteCosto } from "@/lib/componentesCosto";
 
@@ -12,8 +12,8 @@ type Form = {
   sku?: string;
   categoria?: string;
   precio: string;
-  activo: boolean;
-  receta: RecetaItem[];
+  activo?: boolean;
+  receta: RecetaItem[] | undefined;
 };
 
 export default function ProductosPage() {
@@ -50,11 +50,11 @@ export default function ProductosPage() {
     return items.filter(it =>
       (it.nombre?.toLowerCase() ?? "").includes(s) ||
       (it.sku?.toLowerCase() ?? "").includes(s) ||
-      (it.categoria?.toLowerCase() ?? "").includes(s)
+ (it.categoria?.toLowerCase() ?? "").includes(s)
     );
   }, [items, q]);
 
-  // costo en vivo (local) a partir de la receta y componentes cargados
+ // costo en vivo (local) a partir de la receta y componentes cargados
   const costoLive = useMemo(() => {
     if (!form.receta.length || !componentes.length) return 0;
     let total = 0;
@@ -96,7 +96,7 @@ export default function ProductosPage() {
     if (!f.nombre.trim()) errs.push("Nombre es requerido");
     const precio = Number(f.precio);
     if (isNaN(precio) || precio < 0) errs.push("Precio de venta inválido");
-    // receta puede estar vacía, pero se recomienda tenerla
+ // receta puede estar vacía, pero se recomienda tenerla
     for (let i = 0; i < f.receta.length; i++) {
       const r = f.receta[i];
       if (!r.componenteId) errs.push(`Receta ítem #${i+1}: componente requerido`);
@@ -130,7 +130,7 @@ export default function ProductosPage() {
     setItems(data);
   };
 
-  // manejo de receta
+ // manejo de receta
   const addRecetaItem = () => setForm(f => ({ ...f, receta: [...f.receta, { componenteId: "", cantidad: 1 }] }));
   const updateRecetaItem = (idx: number, patch: Partial<RecetaItem>) =>
     setForm(f => ({ ...f, receta: f.receta.map((r, i) => i === idx ? { ...r, ...patch } : r) }));
@@ -228,7 +228,6 @@ export default function ProductosPage() {
                 </div>
               </div>
 
-              {/* Receta */}
               <div>
                 <label className="block text-sm mb-2">Receta (componentes de costo)</label>
                 <div className="space-y-2">

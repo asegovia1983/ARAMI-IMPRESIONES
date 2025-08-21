@@ -1,7 +1,7 @@
 // src/lib/componentesCosto.ts
 import {
-    addDoc, collection, deleteDoc, doc, getDocs, limit, onSnapshot, orderBy,
-    query, serverTimestamp, updateDoc, where, Unsubscribe
+    addDoc, collection, deleteDoc, doc, getDocs, limit, onSnapshot, orderBy, query,
+    serverTimestamp, updateDoc, where,
   } from "firebase/firestore";
   import { db } from "./firebase";
   
@@ -12,24 +12,25 @@ import {
     unidad: string;         // "hoja" | "ml" | "kWh" | "hora" | "unidad"
     costoUnit: number;      // costo por unidad definida
     activo: boolean;
-    createdAt?: any;
-    updatedAt?: any;
+    createdAt?: Date;
+    updatedAt?: Date;
   };
   
   const COL = "componentesCosto";
   
-  const cleanUndefined = (o: any) =>
+  const cleanUndefined = (o: Partial<ComponenteCosto>) =>
     Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
   
   export async function getComponentesActivos(): Promise<ComponenteCosto[]> {
     const q = query(collection(db, COL), where("activo", "==", true), orderBy("createdAt", "desc"), limit(1000));
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+    return snap.docs.map(d => ({ id: d.id, ...(d.data() as ComponenteCosto) }));
   }
   
+   
   export function listenComponentesActivos(cb: (rows: ComponenteCosto[]) => void) {
     const q = query(collection(db, "componentesCosto"), where("activo", "==", true), limit(1000));
-    return onSnapshot(q, (snap) => cb(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))));
+    return onSnapshot(q, (snap) => cb(snap.docs.map(d => ({ id: d.id, ...(d.data() as ComponenteCosto) }))));
   }
   
   export async function crearComponente(p: Omit<ComponenteCosto, "id"|"createdAt"|"updatedAt">) {

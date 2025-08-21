@@ -6,7 +6,7 @@ export type Cliente = {
   telefono?: string;
   email?: string;
   activo: boolean;
-  createdAt?: any;
+  createdAt?: Date;
 };
 
 export type ItemPedido = {
@@ -31,9 +31,9 @@ export type Pedido = {
   saldo: number;
   observaciones?: string;
   fechaPrometida?: string; // YYYY-MM-DD
-  createdAt?: any;
-  updatedAt?: any;
-  entregadoAt?: any;
+  createdAt?: Date;
+  updatedAt?: Date;
+  entregadoAt?: Date;
   cobrado: boolean;
   metodoPago?: 'efectivo' | 'transferencia' | 'tarjeta' | null;
 };
@@ -46,5 +46,5 @@ export type MovimientoCaja = {
   monto: number;
   descripcion?: string;
   metodoPago?: 'efectivo' | 'transferencia' | 'tarjeta';
-  fecha?: any;
+  fecha?: Date;
 };

@@ -1,5 +1,5 @@
 'use client';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { FirebaseError, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -15,7 +15,11 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, pass);
       router.replace('/home/pedidos');
-    } catch (e: any) {
+    } catch (e) {
+ if (e instanceof FirebaseError) {
+ setErr(e.message);
+ }
+       
       setErr(e.message);
     }
   };

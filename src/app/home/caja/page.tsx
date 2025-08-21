@@ -3,16 +3,26 @@ import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from 
 import { db } from '@/lib/firebase';
 import { useEffect, useMemo, useState } from 'react';
 
+interface MovimientoCaja {
+  id: string;
+  tipo: 'ingreso' | 'egreso';
+  origen: string;
+  monto: number;
+  descripcion?: string;
+  fecha: firebase.firestore.Timestamp | Date; // Use Timestamp or Date type
+  metodoPago: string;
+}
+
 export default function CajaPage() {
-  const [movs, setMovs] = useState<any[]>([]);
-  const [tipo, setTipo] = useState<'ingreso'|'egreso'>('ingreso');
+  const [movs, setMovs] = useState<MovimientoCaja[]>([]);
+  const [tipo, setTipo] = useState<'ingreso' | 'egreso'>('ingreso');
   const [monto, setMonto] = useState(0);
   const [desc, setDesc] = useState('');
 
   useEffect(() => {
     const q = query(collection(db, 'movimientosCaja'), orderBy('fecha','desc'));
     const unsub = onSnapshot(q, snap => setMovs(snap.docs.map(d=>({ id: d.id, ...d.data() }))));
-    return () => unsub();
+    return () => unsub(); // Unsubscribe on cleanup
   }, []);
 
   const add = async (e: React.FormEvent) => {
@@ -25,12 +35,12 @@ export default function CajaPage() {
   };
 
   const total = useMemo(()=> movs.reduce((acc,m)=> acc + (m.tipo==='ingreso'?m.monto:-m.monto),0), [movs]);
-
+  
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Caja</h1>
       <form onSubmit={add} className="grid grid-cols-1 md:grid-cols-4 gap-2 bg-neutral-900 p-4 rounded-2xl">
-        <select className="p-2 rounded bg-neutral-800" value={tipo} onChange={e=>setTipo(e.target.value as any)}>
+        <select className="p-2 rounded bg-neutral-800" value={tipo} onChange={e=>setTipo(e.target.value as 'ingreso' | 'egreso')}>
           <option value="ingreso">Ingreso</option>
           <option value="egreso">Egreso</option>
         </select>
