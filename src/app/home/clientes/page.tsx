@@ -1,41 +1,35 @@
 'use client';
-import { addDoc, collection, onSnapshot, query, serverTimestamp, type DocumentData } from 'firebase/firestore';
+
 import { db } from '@/lib/firebase';
 import { useEffect, useState } from 'react';
-import { type CajaItem } from '@/types';
-import { type MovimientoCaja, type Cliente } from '@/types';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { type MovimientoCaja } from '@/types'; // Import MovimientoCaja
 
 export default function ClientesPage() {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [items, setItems] = useState<MovimientoCaja[]>([]); // Use MovimientoCaja
 
   useEffect(() => {
-    const q = query(collection(db, 'clientes'));
+    const q = query(collection(db, 'clientes'), orderBy('nombre')); // Assuming 'clientes' collection and ordering by 'nombre'
     const unsub = onSnapshot(q, snap => {
- setItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as MovimientoCaja)));
+      const clientesData = snap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as MovimientoCaja[]; // Cast to MovimientoCaja
+      setItems(clientesData);
     });
-    return () => unsub();
+
+    return () => unsub(); // Unsubscribe on cleanup
   }, []);
 
-  const add = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await addDoc(collection(db, 'caja'), {
- nombre: nombre,
- // Assuming there's a field for client-specific data like 'activo' in Cliente
- createdAt: serverTimestamp(),
-    });
-    setNombre('');
-  };
-
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Clientes</h1> {/* Use the state variable name consistent with the data it holds */}
-      <form onSubmit={add} className="flex gap-2">
-        <input className="p-2 rounded bg-neutral-800" placeholder="Nombre del cliente" value={nombre} onChange={e => setNombre(e.target.value)} />
- {/* Add input for other client fields if necessary, e.g., phone, email */}
-        <button className="px-4 rounded bg-white text-black">Agregar</button>
-      </form>
- <ul className="space-y-2 divide-y divide-neutral-700">
- {items.map(cliente => <li key={cliente.id} className="p-2 bg-neutral-900 rounded flex justify-between"><span>{cliente.nombre}</span>{/* Display other client info here */}</li>)}
+    <div className="container mx-auto py-10">
+      <h1 className="text-2xl font-bold mb-6">Clientes</h1>
+      {/* Display your clients here using the 'items' state */}
+      {/* This is a placeholder, replace with your actual client display logic */}
+      <ul>
+        {items.map(item => (
+          <li key={item.id}>{/* Display client data, e.g., item.nombre */}</li>
+        ))}
       </ul>
     </div>
   );
