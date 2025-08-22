@@ -4,14 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import { Pedido, listenPedidosEntregados, actualizarPedido } from "@/lib/pedidos";
 import { registrarIngresoPedido } from "@/lib/caja";
 
-/** Extrae un mensaje legible desde cualquier error desconocido */
+/** Extrae un mensaje legible desde cualquier error desconocido sin usar `any` */
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
-  if (err && typeof err === "object" && "message" in err && typeof (err as any).message === "string") {
-    return (err as any).message;
+  if (typeof err === "object" && err !== null) {
+    const maybe = err as { message?: unknown };
+    if (typeof maybe.message === "string") return maybe.message;
   }
-  try { return JSON.stringify(err); } catch { return String(err); }
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
 }
 
 export default function PedidosEntregadosPage() {
@@ -45,7 +50,7 @@ export default function PedidosEntregadosPage() {
     try {
       if (!p.id) throw new Error("Pedido sin ID");
       const monto = Number(p.saldo || 0);
-      const metodo = metodoPago[p.id] ?? p.metodoPago ?? undefined;
+      const metodo = (p.id ? metodoPago[p.id] : undefined) ?? p.metodoPago ?? undefined;
 
       if (monto <= 0) {
         // Sin saldo: solo marcar como cobrado
