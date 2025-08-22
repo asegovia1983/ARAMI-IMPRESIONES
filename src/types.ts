@@ -48,3 +48,16 @@ export type MovimientoCaja = {
   metodoPago?: 'efectivo' | 'transferencia' | 'tarjeta';
   fecha?: Date;
 };
+
+export type TipoComponente = "insumo" | "variable" | "fijo";
+
+export interface ComponenteCosto {
+  id?: string;
+  nombre: string;
+  tipo: TipoComponente;
+  unidad: string;
+  costoUnit: number;
+  activo: boolean;
+  createdAt?: unknown; // si usás Timestamp de Firebase podés tiparlo mejor
+  updatedAt?: unknown;
+}
