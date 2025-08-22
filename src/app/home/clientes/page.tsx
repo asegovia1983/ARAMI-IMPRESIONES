@@ -3,7 +3,7 @@
 import { db } from '@/lib/firebase';
 import { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { type MovimientoCaja } from '@/types'; // Import MovimientoCaja
+import { type Cliente } from '@/types'; // Import Cliente
 
 export default function ClientesPage() {
   const [items, setItems] = useState<MovimientoCaja[]>([]); // Use MovimientoCaja
@@ -14,7 +14,7 @@ export default function ClientesPage() {
       const clientesData = snap.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-      })) as MovimientoCaja[]; // Cast to MovimientoCaja
+      })) as Cliente[]; // Cast to Cliente type based on the data
       setItems(clientesData);
     });
 
@@ -28,7 +28,12 @@ export default function ClientesPage() {
       {/* This is a placeholder, replace with your actual client display logic */}
       <ul>
         {items.map(item => (
-          <li key={item.id}>{/* Display client data, e.g., item.nombre */}</li>
+          // Basic display for demonstration. You'll want to style this better.
+          // Consider using a grid or flexbox for better layout on different screen sizes.
+          <li key={item.id} className="border-b border-gray-200 py-2">
+            {/* Assuming Cliente type has a 'nombre' property */}
+            {item.nombre}
+          </li>
         ))}
       </ul>
     </div>

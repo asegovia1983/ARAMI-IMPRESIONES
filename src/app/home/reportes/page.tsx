@@ -44,7 +44,7 @@ export default function ReportesPage() {
           </div>
 
           <h2 className="font-bold">Detalle por producto</h2>
-          <div className="overflow-x-auto border rounded">
+          <div className="overflow-x-auto">
             <table className="min-w-[1000px] w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>

@@ -77,7 +77,7 @@ export default function PedidosPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto border rounded">
+      <div className="overflow-x-auto border rounded bg-white dark:bg-gray-900">
         <table className="min-w-[1000px] w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
@@ -91,7 +91,7 @@ export default function PedidosPage() {
               <th className="p-3 text-right">Acciones</th>
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+          <tbody className="text-gray-800 dark:text-gray-200">
             {loading ? (
               <tr><td colSpan={8} className="p-4">Cargando...</td></tr>
             ) : filtered.length ? (

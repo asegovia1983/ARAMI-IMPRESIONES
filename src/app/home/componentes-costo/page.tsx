@@ -116,8 +116,8 @@ export default function ComponentesCostoPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto border rounded">
-        <table className="min-w-[900px] w-full text-sm">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm border rounded">
           <thead className="bg-gray-50">
             <tr>
               <th className="p-3 text-left">Nombre</th>
@@ -130,12 +130,12 @@ export default function ComponentesCostoPage() {
           </thead>
           <tbody className="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200">
             {filtered.map((c) => (
-              <tr key={c.id} className="border-t">
-                <td className="p-3">{c.nombre}</td>
-                <td className="p-3">{c.tipo}</td>
-                <td className="p-3">{c.unidad}</td>
-                <td className="p-3 text-right">AR$ {c.costoUnit.toLocaleString("es-AR")}</td>
-                <td className="p-3 text-center">{c.activo ? "✓" : "✕"}</td>
+              <tr key={c.id} className="border-b dark:border-gray-700">
+                <td className="p-3 whitespace-nowrap">{c.nombre}</td>
+                <td className="p-3 whitespace-nowrap">{c.tipo}</td>
+                <td className="p-3 whitespace-nowrap">{c.unidad}</td>
+                <td className="p-3 text-right whitespace-nowrap">AR$ {c.costoUnit.toLocaleString("es-AR")}</td>
+                <td className="p-3 text-center whitespace-nowrap">{c.activo ? "✓" : "✕"}</td>
                 <td className="p-3 text-right space-x-2">
                   <button className="underline" onClick={() => onEdit(c)}>
                     Editar
@@ -159,7 +159,7 @@ export default function ComponentesCostoPage() {
 
       {open && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
-          <div className="bg-white rounded p-4 w-[95%] max-w-lg space-y-3">
+          <div className="bg-white dark:bg-gray-800 rounded p-4 w-[95%] max-w-lg space-y-3 text-gray-800 dark:text-gray-200">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">
                 {form.id ? "Editar componente" : "Nuevo componente"}

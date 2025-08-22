@@ -43,7 +43,7 @@ export default function PedidosEntregadosPage() {
     );
   }, [q, rows]);
 
-  const formatMoney = (n?: number) =>
+  const formatMoney = (n: number | null | undefined) =>
     typeof n === "number" ? `AR$ ${n.toLocaleString("es-AR")}` : "—";
 
   async function marcarCobrado(p: Pedido) {
