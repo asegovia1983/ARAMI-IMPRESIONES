@@ -1,6 +1,3 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+module.exports = {
   output: 'standalone',
-  experimental: { serverActions: { allowedOrigins: ['*'] } },
 };
-export default nextConfig;

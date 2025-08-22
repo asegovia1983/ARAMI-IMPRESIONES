@@ -13,7 +13,7 @@ type Form = {
   categoria?: string;
   precio: string;
   activo?: boolean;
-  receta: RecetaItem[] | undefined;
+  receta: RecetaItem[];
 };
 
 export default function ProductosPage() {

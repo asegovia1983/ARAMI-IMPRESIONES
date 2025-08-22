@@ -48,9 +48,8 @@ export default function PedidosEntregadosPage() {
       // 2) marcar cobrado
       await actualizarPedido(p.id!, { cobrado: true, metodoPago: metodoPago[p.id!] || undefined });
       alert("¡Cobro registrado y pedido marcado como cobrado!");
-    } catch (e: unknown) {
-      console.error(e);
-      alert(`Error al cobrar: ${e?.message || e}`);
+    } catch (e: any) {
+      alert(`Error al cobrar: ${e?.message ?? e}`);
     }
   }
 
