@@ -4,11 +4,22 @@ import { useEffect, useMemo, useState } from "react";
 import { Pedido, listenPedidosEntregados, actualizarPedido } from "@/lib/pedidos";
 import { registrarIngresoPedido } from "@/lib/caja";
 
+/** Extrae un mensaje legible desde cualquier error desconocido */
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && "message" in err && typeof (err as any).message === "string") {
+    return (err as any).message;
+  }
+  try { return JSON.stringify(err); } catch { return String(err); }
+}
+
 export default function PedidosEntregadosPage() {
   const [rows, setRows] = useState<Pedido[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
-  const [metodoPago, setMetodoPago] = useState<Record<string, string>>({}); // Method of payment by order ID
+  /** Método de pago ingresado por ID de pedido */
+  const [metodoPago, setMetodoPago] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsub = listenPedidosEntregados((data) => {
@@ -21,40 +32,47 @@ export default function PedidosEntregadosPage() {
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return rows;
-    return rows.filter(r =>
+    return rows.filter((r) =>
       (r.clienteNombre?.toLowerCase() ?? "").includes(s) ||
-      (r.items?.some(i => (i.nombre?.toLowerCase() ?? "").includes(s)) ?? false)
+      (r.items?.some((i) => (i.nombre?.toLowerCase() ?? "").includes(s)) ?? false)
     );
   }, [q, rows]);
 
-  const formatMoney = (n?: number) => typeof n === "number" ? `AR$ ${n.toLocaleString("es-AR")}` : "—";
+  const formatMoney = (n?: number) =>
+    typeof n === "number" ? `AR$ ${n.toLocaleString("es-AR")}` : "—";
 
   async function marcarCobrado(p: Pedido) {
     try {
+      if (!p.id) throw new Error("Pedido sin ID");
       const monto = Number(p.saldo || 0);
+      const metodo = metodoPago[p.id] ?? p.metodoPago ?? undefined;
+
       if (monto <= 0) {
-        // igual marcamos cobrado, pero sin movimiento
-        await actualizarPedido(p.id!, { cobrado: true, metodoPago: metodoPago[p.id!] || undefined });
+        // Sin saldo: solo marcar como cobrado
+        await actualizarPedido(p.id, { cobrado: true, metodoPago: metodo });
         alert("Pedido marcado como cobrado (no había saldo pendiente).");
         return;
-    }
-      // 1) registrar ingreso en caja
+      }
+
+      // 1) Registrar ingreso en caja
       await registrarIngresoPedido({
         pedidoPath: `pedidos/${p.id}`,
         monto,
-        metodoPago: metodoPago[p.id!] || undefined,
+        metodoPago: metodo,
         descripcion: `Cobro pedido ${p.id}`,
       });
-      // 2) marcar cobrado
-      await actualizarPedido(p.id!, { cobrado: true, metodoPago: metodoPago[p.id!] || undefined });
+
+      // 2) Marcar cobrado
+      await actualizarPedido(p.id, { cobrado: true, metodoPago: metodo });
+
       alert("¡Cobro registrado y pedido marcado como cobrado!");
-    } catch (e: any) {
-      alert(`Error al cobrar: ${(e as Error)?.message ?? e}`);
+    } catch (e: unknown) {
+      alert(`Error al cobrar: ${getErrorMessage(e)}`);
     }
   }
 
   return (
-    <div className="p-4 space-y-4 dark:bg-gray-900 ">
+    <div className="p-4 space-y-4 dark:bg-gray-900">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">Pedidos entregados</h1>
         <div className="flex items-center gap-2">
@@ -86,14 +104,20 @@ export default function PedidosEntregadosPage() {
             {loading ? (
               <tr><td colSpan={8} className="p-4">Cargando...</td></tr>
             ) : filtered.length ? (
-              filtered.map(p => (
+              filtered.map((p) => (
                 <tr key={p.id} className="border-t align-top">
-                  <td className="p-3">{p.createdAt?.toDate?.().toLocaleDateString?.("es-AR") ?? "—"}</td>
+                  <td className="p-3">
+                    {p.createdAt?.toDate?.()?.toLocaleDateString?.("es-AR") ?? "—"}
+                  </td>
                   <td className="p-3">
                     <div className="font-medium">{p.clienteNombre}</div>
-                    {p.telefono && <div className="text-xs text-gray-500">{p.telefono}</div>}
+                    {p.telefono && (
+                      <div className="text-xs text-gray-500">{p.telefono}</div>
+                    )}
                   </td>
-                  <td className="p-3">{p.items?.[0] ? `${p.items[0].cantidad} × ${p.items[0].nombre}` : "—"}</td>
+                  <td className="p-3">
+                    {p.items?.[0] ? `${p.items[0].cantidad} × ${p.items[0].nombre}` : "—"}
+                  </td>
                   <td className="p-3 text-right">{formatMoney(p.total)}</td>
                   <td className="p-3 text-right">{formatMoney(p.saldo)}</td>
                   <td className="p-3">{p.cobrado ? "Sí" : "No"}</td>
@@ -101,8 +125,12 @@ export default function PedidosEntregadosPage() {
                     <input
                       className="border rounded px-2 py-1"
                       placeholder="efectivo / transferencia / etc."
-                      value={metodoPago[p.id!] || p.metodoPago || ""}
-                      onChange={(e) => setMetodoPago(prev => ({ ...prev, [p.id!]: e.target.value }))}
+                      value={p.id ? (metodoPago[p.id] ?? p.metodoPago ?? "") : ""}
+                      onChange={(e) => {
+                        if (!p.id) return;
+                        const val = e.target.value;
+                        setMetodoPago((prev) => ({ ...prev, [p.id as string]: val }));
+                      }}
                       disabled={p.cobrado}
                     />
                   </td>
