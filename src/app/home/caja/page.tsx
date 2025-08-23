@@ -1,152 +1,190 @@
-'use client';
+"use client";
 
-import {
-  addDoc,
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, Timestamp, FirestoreDataConverter, QueryDocumentSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useEffect, useMemo, useState } from "react";
 
-// El estado de la app usará siempre Date para simplificar render
-interface MovimientoCaja {
-  id: string;
-  tipo: 'ingreso' | 'egreso';
+export interface MovimientoCaja {
+  id?: string; // <— opcional
+  tipo: "ingreso" | "egreso";
   origen: string;
   monto: number;
   descripcion?: string;
-  fecha: Date;            // <- solo Date en el estado
+  fecha: Timestamp | Date;
   metodoPago: string;
 }
 
-// Helper robusto para normalizar cualquier input de fecha a Date
-const toDate = (v: unknown): Date => {
-  if (v instanceof Timestamp) return v.toDate();
-  if (v instanceof Date) return v;
 
-  // Objeto plano con { seconds, nanoseconds }
-  if (v && typeof v === 'object' && 'seconds' in (v as any)) {
-    const s = Number((v as any).seconds) || 0;
-    const ns = Number((v as any).nanoseconds) || 0;
-    return new Date(s * 1000 + Math.floor(ns / 1e6));
-  }
-
-  if (typeof v === 'number') return new Date(v); // epoch ms
-  if (typeof v === 'string') return new Date(v); // ISO u otro parseable
-
-  return new Date(NaN); // inválido: si querés, validalo aguas arriba
+/** Converter para tipar lecturas/escrituras y eliminar `any` en d.data() */
+const movCajaConverter: FirestoreDataConverter<MovimientoCaja> = {
+  toFirestore(m: Omit<MovimientoCaja, "id">) {
+    return {
+      tipo: m.tipo,
+      origen: m.origen,
+      monto: m.monto,
+      descripcion: m.descripcion ?? "",
+      fecha: m.fecha instanceof Date ? Timestamp.fromDate(m.fecha) : m.fecha,
+      metodoPago: m.metodoPago,
+    };
+  },
+  fromFirestore(snapshot: QueryDocumentSnapshot) {
+    const d = snapshot.data() as {
+      tipo: MovimientoCaja["tipo"];
+      origen: string;
+      monto: number;
+      descripcion?: string;
+      fecha: Timestamp | Date;
+      metodoPago: string;
+    };
+    return {
+      id: snapshot.id,
+      tipo: d.tipo,
+      origen: d.origen,
+      monto: Number(d.monto || 0),
+      descripcion: d.descripcion ?? "",
+      fecha: d.fecha,
+      metodoPago: d.metodoPago,
+    };
+  },
 };
+
+type TipoMovimiento = MovimientoCaja["tipo"];
 
 export default function CajaPage() {
   const [movs, setMovs] = useState<MovimientoCaja[]>([]);
-  const [tipo, setTipo] = useState<'ingreso' | 'egreso'>('ingreso');
+  const [tipo, setTipo] = useState<TipoMovimiento>("ingreso");
   const [monto, setMonto] = useState<number>(0);
-  const [desc, setDesc] = useState<string>('');
+  const [desc, setDesc] = useState<string>("");
 
   useEffect(() => {
-    const q = query(collection(db, 'movimientosCaja'), orderBy('fecha', 'desc'));
+    const col = collection(db, "movimientosCaja").withConverter(movCajaConverter);
+    const q = query(col, orderBy("fecha","desc"));
     const unsub = onSnapshot(q, (snap) => {
-      const items: MovimientoCaja[] = snap.docs.map((d) => {
-        const data = d.data() as any; // datos crudos del doc
-        return {
-          id: d.id,
-          tipo: data?.tipo ?? 'ingreso',
-          origen: data?.origen ?? 'ajuste',
-          monto: Number(data?.monto ?? 0),
-          descripcion: data?.descripcion ?? '',
-          fecha: toDate(data?.fecha), // <- normalizamos SIEMPRE a Date
-          metodoPago: data?.metodoPago ?? 'efectivo',
-        };
-      });
-      setMovs(items);
+      const list = snap.docs.map((d) => d.data());
+      setMovs(list);
     });
     return () => unsub();
   }, []);
 
-  const add = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // Validación mínima
-    const montoNum = Number(monto);
-    if (!montoNum || Number.isNaN(montoNum)) return;
+  const total = useMemo(() => {
+    return movs.reduce(
+      (acc, m) => {
+        if (m.tipo === "ingreso") acc.ingresos += m.monto;
+        else acc.egresos += m.monto;
+        acc.neto = acc.ingresos - acc.egresos;
+        return acc;
+      },
+      { ingresos: 0, egresos: 0, neto: 0 }
+    );
+  }, [movs]);
 
-    await addDoc(collection(db, 'movimientosCaja'), {
+  const agregar = async () => {
+    if (!monto || monto <= 0) return;
+    const col = collection(db, "movimientosCaja").withConverter(movCajaConverter);
+    await addDoc(col, {
+      id: "", // Firestore lo asigna; no se usa en toFirestore
       tipo,
-      origen: 'ajuste',
-      monto: montoNum,
-      descripcion: desc || null,
-      fecha: serverTimestamp(), // guardamos Timestamp en Firestore
-      metodoPago: 'efectivo',
+      origen: "Caja",
+      monto,
+      descripcion: desc.trim(),
+      fecha: serverTimestamp() as unknown as Timestamp, // se normaliza luego por converter/lectura
+      metodoPago: "efectivo",
     });
-
     setMonto(0);
-    setDesc('');
+    setDesc("");
   };
 
-  const total = useMemo(
-    () => movs.reduce((acc, m) => acc + (m.tipo === 'ingreso' ? m.monto : -m.monto), 0),
-    [movs]
-  );
+  const formatAR = (n: number) => `AR$ ${n.toLocaleString("es-AR")}`;
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Caja</h1>
+    <div className="p-4 space-y-4">
+      <h1 className="text-xl font-semibold">Caja</h1>
 
-      {/* Form responsive */}
-      <form
-        onSubmit={add}
-        className="grid grid-cols-1 md:grid-cols-4 gap-2 bg-neutral-900 p-4 rounded-2xl"
-      >
-        <select
-          className="p-2 rounded bg-neutral-800 text-white"
-          value={tipo}
-          onChange={(e) => setTipo(e.target.value as 'ingreso' | 'egreso')}
+      <div className="flex gap-2 items-end">
+        <div className="flex flex-col">
+          <label className="text-sm">Tipo</label>
+          <select
+            className="border rounded px-2 py-1"
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value as TipoMovimiento)}
+          >
+            <option value="ingreso">Ingreso</option>
+            <option value="egreso">Egreso</option>
+          </select>
+        </div>
+        <div className="flex flex-col">
+          <label className="text-sm">Monto</label>
+          <input
+            type="number"
+            className="border rounded px-2 py-1"
+            value={monto}
+            onChange={(e) => setMonto(Number(e.target.value))}
+          />
+        </div>
+        <div className="flex-1 flex flex-col">
+          <label className="text-sm">Descripción</label>
+          <input
+            className="border rounded px-2 py-1"
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder="Detalle..."
+          />
+        </div>
+        <button
+          onClick={agregar}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded"
         >
-          <option value="ingreso">Ingreso</option>
-          <option value="egreso">Egreso</option>
-        </select>
+          Agregar
+        </button>
+      </div>
 
-        <input
-          className="p-2 rounded bg-neutral-800"
-          type="number"
-          placeholder="Monto"
-          value={monto}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setMonto(Number(e.target.value))}
-        />
-
-        <input
-          className="p-2 rounded bg-neutral-800"
-          placeholder="Descripción"
-          value={desc}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setDesc(e.target.value)}
-        />
-
-        <button className="py-2 rounded bg-white text-black">Agregar</button>
-      </form>
-
-      <div className="flex items-center justify-between">
-        <h2 className="opacity-80">Movimientos</h2>
-        <div className="text-lg">
-          Saldo: <b>${total.toLocaleString('es-AR')}</b>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-3 rounded border bg-green-50">
+          <div className="text-xs text-gray-600">Ingresos</div>
+          <div className="text-lg font-semibold">{formatAR(total.ingresos)}</div>
+        </div>
+        <div className="p-3 rounded border bg-red-50">
+          <div className="text-xs text-gray-600">Egresos</div>
+          <div className="text-lg font-semibold">{formatAR(total.egresos)}</div>
+        </div>
+        <div className="p-3 rounded border bg-gray-50">
+          <div className="text-xs text-gray-600">Neto</div>
+          <div className="text-lg font-semibold">{formatAR(total.neto)}</div>
         </div>
       </div>
 
-      {/* Lista */}
-      <ul className="space-y-2">
-        {movs.map((m) => (
-          <li key={m.id} className="p-2 bg-neutral-900 rounded flex justify-between">
-            <span className="opacity-70">
-              {m.tipo.toUpperCase()} · {m.descripcion || '—'}
-            </span>
-            <span className={m.tipo === 'ingreso' ? 'text-green-400' : 'text-red-400'}>
-              {m.tipo === 'ingreso' ? '+' : '-'}${m.monto?.toLocaleString('es-AR')}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <div className="overflow-x-auto border rounded">
+        <table className="min-w-[700px] w-full text-sm">
+          <thead className="bg-gray-50 text-left">
+            <tr>
+              <th className="p-2">Fecha</th>
+              <th className="p-2">Tipo</th>
+              <th className="p-2">Descripción</th>
+              <th className="p-2 text-right">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {movs.map((m) => {
+              const d =
+                m.fecha instanceof Timestamp
+                  ? m.fecha.toDate()
+                  : m.fecha instanceof Date
+                  ? m.fecha
+                  : null;
+              return (
+                <tr key={m.id} className="border-t">
+                  <td className="p-2">{d ? d.toLocaleString("es-AR") : "—"}</td>
+                  <td className="p-2 capitalize">{m.tipo}</td>
+                  <td className="p-2">{m.descripcion || "—"}</td>
+                  <td className="p-2 text-right">
+                    {formatAR(Number(m.monto || 0))}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

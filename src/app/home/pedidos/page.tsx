@@ -19,22 +19,28 @@ function useHasMounted() {
   return mounted;
 }
 
-type FireTS = { toDate?: () => Date } | null | undefined;
+/** Tipos robustos para fechas estilo Firestore/Web */
+type FireTimestampLike = { toDate: () => Date };
+type FireDateInput = string | number | Date | FireTimestampLike | null | undefined;
 
-function parseFechaPrometida(fp?: string | Date | number | FireTS) {
+function hasToDate(x: unknown): x is FireTimestampLike {
+  return !!x && typeof x === "object" && "toDate" in x && typeof (x as { toDate?: unknown }).toDate === "function";
+}
+
+function parseFechaPrometida(fp: FireDateInput): Date | null {
   if (!fp) return null;
-  if (typeof fp === "object" && "toDate" in (fp as any) && typeof (fp as any).toDate === "function") {
-    const d = (fp as any).toDate();
-    return isNaN(d?.getTime?.() ?? NaN) ? null : d;
+  if (hasToDate(fp)) {
+    const d = fp.toDate();
+    return Number.isNaN(d.getTime()) ? null : d;
   }
-  if (fp instanceof Date) return isNaN(fp.getTime()) ? null : fp;
+  if (fp instanceof Date) return Number.isNaN(fp.getTime()) ? null : fp;
   if (typeof fp === "number") {
     const d = new Date(fp);
-    return isNaN(d.getTime()) ? null : d;
+    return Number.isNaN(d.getTime()) ? null : d;
   }
   if (typeof fp === "string") {
     const d = new Date(fp);
-    return isNaN(d.getTime()) ? null : d;
+    return Number.isNaN(d.getTime()) ? null : d;
   }
   return null;
 }
@@ -45,6 +51,13 @@ function diffDaysFromToday(target?: Date | null) {
   const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   const t1 = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
   return Math.round((t1 - t0) / (1000 * 60 * 60 * 24));
+}
+
+/** Extra: fecha creada segura (Timestamp | Date | string | number) */
+function getCreatedAtDate(val: unknown): Date | null {
+  if (hasToDate(val)) return parseFechaPrometida(val);
+  if (val instanceof Date || typeof val === "string" || typeof val === "number") return parseFechaPrometida(val);
+  return null;
 }
 
 export default function PedidosPage() {
@@ -79,10 +92,10 @@ export default function PedidosPage() {
   }, [q, rows]);
 
   const sorted = useMemo(() => {
-    // Orden: los con fecha más próxima primero; vencidos quedan arriba; sin fecha al final.
+    // Orden: los con fecha más próxima primero; vencidos arriba; sin fecha al final.
     return [...filtered].sort((a, b) => {
-      const da = parseFechaPrometida(a.fechaPrometida as any);
-      const db = parseFechaPrometida(b.fechaPrometida as any);
+      const da = parseFechaPrometida((a as unknown as { fechaPrometida?: FireDateInput }).fechaPrometida);
+      const db = parseFechaPrometida((b as unknown as { fechaPrometida?: FireDateInput }).fechaPrometida);
       if (!da && !db) return 0;
       if (!da) return 1;
       if (!db) return -1;
@@ -195,10 +208,12 @@ export default function PedidosPage() {
               </tr>
             ) : sorted.length ? (
               sorted.map((p) => {
-                const dProm = parseFechaPrometida(p.fechaPrometida as any);
+                const dProm = parseFechaPrometida((p as unknown as { fechaPrometida?: FireDateInput }).fechaPrometida);
                 const dias = diffDaysFromToday(dProm);
                 const isSoon = dias <= 2 && dias >= 0;   // 0,1,2 días
                 const isOverdue = dias < 0;              // vencido
+
+                const createdAtDate = getCreatedAtDate((p as unknown as { createdAt?: unknown }).createdAt);
 
                 return (
                   <tr
@@ -206,8 +221,8 @@ export default function PedidosPage() {
                     className={`border-t align-top ${rowClassesByEstado(p.estado)} ${isOverdue ? "bg-red-50 dark:bg-red-900/30" : ""}`}
                   >
                     <td className="p-3">
-                      {hasMounted
-                        ? (p.createdAt?.toDate?.().toLocaleDateString?.("es-AR") ?? "—")
+                      {hasMounted && createdAtDate
+                        ? createdAtDate.toLocaleDateString("es-AR")
                         : "—"}
                     </td>
                     <td className="p-3">
@@ -221,10 +236,10 @@ export default function PedidosPage() {
                           </span>
                         )}
                         {isOverdue && (
-                        <span title="Vencido" className="inline-flex">
-                          <AlertTriangle className="h-4 w-4 text-red-600" aria-label="Vencido" />
-                        </span>
-                      )}
+                          <span title="Vencido" className="inline-flex">
+                            <AlertTriangle className="h-4 w-4 text-red-600" aria-label="Vencido" />
+                          </span>
+                        )}
                         {p.clienteNombre}
                       </div>
                       {p.telefono && (
