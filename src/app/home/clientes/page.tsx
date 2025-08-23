@@ -17,7 +17,7 @@ import { db } from "@/lib/firebase";
 
 // ==== Tipo del documento ====
 export interface Cliente {
-  id?: string;                 // id del doc (no se guarda)
+  id?: string;                 // id del doc (no se guarda en Firestore)
   nombre: string;
   telefono?: string;
   email?: string;
@@ -26,11 +26,20 @@ export interface Cliente {
   createdAt?: Timestamp | Date;
 }
 
-// ==== Converter tipado (elimina `any` en d.data()) ====
+// ==== Converter tipado (sin any) ====
 const clienteConverter: FirestoreDataConverter<Cliente> = {
   toFirestore(model: WithFieldValue<Cliente>): DocumentData {
-    const { id, ...rest } = model as Cliente; // no guardamos `id`
-    return rest;
+    // Construimos el objeto a guardar SIN el campo `id`
+    const m = model as Cliente;
+    const out: DocumentData = {
+      nombre: m.nombre,
+      telefono: m.telefono,
+      email: m.email,
+      direccion: m.direccion,
+      activo: m.activo,
+      createdAt: m.createdAt,
+    };
+    return out;
   },
   fromFirestore(
     snapshot: QueryDocumentSnapshot,
@@ -42,7 +51,12 @@ const clienteConverter: FirestoreDataConverter<Cliente> = {
 };
 
 function isTimestamp(x: unknown): x is Timestamp {
-  return !!x && typeof x === "object" && "toDate" in (x as any);
+  return (
+    !!x &&
+    typeof x === "object" &&
+    "toDate" in (x as Record<string, unknown>) &&
+    typeof (x as { toDate?: unknown }).toDate === "function"
+  );
 }
 
 export default function ClientesPage() {
@@ -128,7 +142,9 @@ export default function ClientesPage() {
                         {c.activo ? "Sí" : "No"}
                       </span>
                     </td>
-                    <td className="p-3">{d ? d.toLocaleDateString("es-AR") : "—"}</td>
+                    <td className="p-3">
+                      {d ? d.toLocaleDateString("es-AR") : "—"}
+                    </td>
                   </tr>
                 );
               })
