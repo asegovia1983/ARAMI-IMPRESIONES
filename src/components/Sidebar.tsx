@@ -44,7 +44,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         {item("/home/productos", "Productos", Package)}
         {item("/home/componentes-costo", "Componente Costo", Calculator)}
         {item("/home/reportes", "Reportes", LineChart)}
-        {item("/salir", "Salir", LogOut)}
+        {/*item("/salir", "Salir", LogOut)*/}
       </nav>
       <div className="absolute bottom-3 left-3 right-3 rounded-xl border border-slate-800 p-3 text-xs text-slate-400">
         <div className="font-medium text-slate-200">Versión 1.0</div>
