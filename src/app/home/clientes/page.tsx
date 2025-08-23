@@ -1,41 +1,147 @@
-'use client';
+"use client";
 
-import { db } from '@/lib/firebase';
-import { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { type Cliente } from '@/types'; // Import Cliente
+import { useEffect, useMemo, useState } from "react";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  FirestoreDataConverter,
+  QueryDocumentSnapshot,
+  DocumentData,
+  WithFieldValue,
+  SnapshotOptions,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+// ==== Tipo del documento ====
+export interface Cliente {
+  id?: string;                 // id del doc (no se guarda)
+  nombre: string;
+  telefono?: string;
+  email?: string;
+  direccion?: string;
+  activo?: boolean;
+  createdAt?: Timestamp | Date;
+}
+
+// ==== Converter tipado (elimina `any` en d.data()) ====
+const clienteConverter: FirestoreDataConverter<Cliente> = {
+  toFirestore(model: WithFieldValue<Cliente>): DocumentData {
+    const { id, ...rest } = model as Cliente; // no guardamos `id`
+    return rest;
+  },
+  fromFirestore(
+    snapshot: QueryDocumentSnapshot,
+    options?: SnapshotOptions
+  ): Cliente {
+    const d = snapshot.data(options) as Omit<Cliente, "id">;
+    return { id: snapshot.id, ...d };
+  },
+};
+
+function isTimestamp(x: unknown): x is Timestamp {
+  return !!x && typeof x === "object" && "toDate" in (x as any);
+}
 
 export default function ClientesPage() {
-  const [items, setItems] = useState<MovimientoCaja[]>([]); // Use MovimientoCaja
+  const [items, setItems] = useState<Cliente[]>([]);
+  const [q, setQ] = useState("");
 
   useEffect(() => {
-    const q = query(collection(db, 'clientes'), orderBy('nombre')); // Assuming 'clientes' collection and ordering by 'nombre'
-    const unsub = onSnapshot(q, snap => {
-      const clientesData = snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Cliente[]; // Cast to Cliente type based on the data
-      setItems(clientesData);
+    const col = collection(db, "clientes").withConverter(clienteConverter);
+    const qy = query(col, orderBy("nombre"));
+    const unsub = onSnapshot(qy, (snap) => {
+      setItems(snap.docs.map((d) => d.data()));
     });
-
-    return () => unsub(); // Unsubscribe on cleanup
+    return () => unsub();
   }, []);
 
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return items;
+    return items.filter((c) =>
+      [
+        c.nombre ?? "",
+        c.telefono ?? "",
+        c.email ?? "",
+        c.direccion ?? "",
+        String(c.activo ?? ""),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(s)
+    );
+  }, [q, items]);
+
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-6">Clientes</h1>
-      {/* Display your clients here using the 'items' state */}
-      {/* This is a placeholder, replace with your actual client display logic */}
-      <ul>
-        {items.map(item => (
-          // Basic display for demonstration. You'll want to style this better.
-          // Consider using a grid or flexbox for better layout on different screen sizes.
-          <li key={item.id} className="border-b border-gray-200 py-2">
-            {/* Assuming Cliente type has a 'nombre' property */}
-            {item.nombre}
-          </li>
-        ))}
-      </ul>
+    <div className="p-4 space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold">Clientes</h1>
+        <input
+          className="border rounded px-3 py-2"
+          placeholder="Buscar por nombre, teléfono, email…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
+
+      <div className="overflow-x-auto border rounded">
+        <table className="min-w-[900px] w-full text-sm">
+          <thead className="bg-gray-50 text-left">
+            <tr>
+              <th className="p-3">Nombre</th>
+              <th className="p-3">Teléfono</th>
+              <th className="p-3">Email</th>
+              <th className="p-3">Dirección</th>
+              <th className="p-3">Activo</th>
+              <th className="p-3">Creado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length ? (
+              filtered.map((c) => {
+                const d =
+                  isTimestamp(c.createdAt)
+                    ? c.createdAt.toDate()
+                    : c.createdAt instanceof Date
+                    ? c.createdAt
+                    : null;
+                return (
+                  <tr key={c.id} className="border-t">
+                    <td className="p-3">{c.nombre}</td>
+                    <td className="p-3">{c.telefono || "—"}</td>
+                    <td className="p-3">{c.email || "—"}</td>
+                    <td className="p-3">{c.direccion || "—"}</td>
+                    <td className="p-3">
+                      <span
+                        className={`inline-flex items-center gap-2 ${
+                          c.activo ? "text-green-700" : "text-gray-500"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-2 w-2 rounded-full ${
+                            c.activo ? "bg-green-500" : "bg-gray-400"
+                          }`}
+                        />
+                        {c.activo ? "Sí" : "No"}
+                      </span>
+                    </td>
+                    <td className="p-3">{d ? d.toLocaleDateString("es-AR") : "—"}</td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td className="p-3" colSpan={6}>
+                  Sin resultados
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
