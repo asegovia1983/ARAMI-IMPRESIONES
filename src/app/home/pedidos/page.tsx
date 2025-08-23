@@ -221,10 +221,10 @@ export default function PedidosPage() {
                           </span>
                         )}
                         {isOverdue && (
-                          <span title="Vencido" className="inline-flex">
-                            <AlertTriangle className="h-4 w-4 text-red-600" aria-label="Vencido" />
-                          </span>
-                        )}
+                        <span title="Vencido" className="inline-flex">
+                          <AlertTriangle className="h-4 w-4 text-red-600" aria-label="Vencido" />
+                        </span>
+                      )}
                         {p.clienteNombre}
                       </div>
                       {p.telefono && (

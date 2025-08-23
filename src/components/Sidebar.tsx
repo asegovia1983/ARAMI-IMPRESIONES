@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { Package, ShoppingCart, Calculator, LineChart, LogOut } from "lucide-react"; 
 
 interface SidebarProps {
-  isOpen: boolean;
-  toggleSidebar: () => void;
+  isOpen: boolean; // This prop seems unused in the component logic.
+  toggleSidebar: () => void; // This prop seems unused in the component logic.
 }
 
 export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
@@ -29,13 +29,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   };
 
   return (
-    <aside className={`fixed left-0 top-0 z-40 h-screen w-64 border-r border-slate-800 bg-slate-900/95 backdrop-blur transform transition-transform duration-300 ease-in-out
-      ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      }
-      md:translate-x-0
-      md:block
-    `}>
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-slate-800 bg-slate-900/95 backdrop-blur transform transition-transform duration-300 ease-in-out md:translate-x-0 md:block">
       <div className="px-4 py-4">
         <div className="text-lg font-semibold tracking-wide text-white">Impresiones Arami</div>
       </div> 
@@ -52,4 +46,5 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
       </div>
     </aside>
   );
+
 }
